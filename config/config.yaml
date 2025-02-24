@@ -1,0 +1,28 @@
+# config/config.yaml
+
+simulation:
+  grid:
+    x_points: 100       # Number of grid points in the x-direction
+    y_points: 100       # Number of grid points in the y-direction
+    x_length: 1.0       # Domain length in x (normalized units)
+    y_length: 1.0       # Domain length in y (normalized units)
+
+  time:
+    dt: 0.001           # Time step (normalized time)
+    total_time: 1.0     # Total simulation time (normalized time)
+
+  material:
+    # Normalized material parameters so that c = 1.
+    epsilon: 1.0        # Permittivity (normalized units)
+    mu: 1.0             # Permeability (normalized units)
+
+  initial_conditions:
+    phi_amplitude: 0.01 # Amplitude of the initial scalar potential perturbation
+    A_amplitude: 0.0    # Amplitude of the initial vector potential perturbation
+
+  boundary_conditions:
+    type: "dirichlet"   # Boundary condition: "dirichlet" or "neumann"
+
+  output:
+    snapshot_interval: 50    # Time step interval between output snapshots
+    output_dir: "outputs"      # Directory for simulation outputs
