@@ -1,41 +1,61 @@
 # config/config.yaml
 
 simulation:
+  dimension: 3            # Dimension of simulation (2 or 3)
   grid:
-    x_points: 100       # Number of grid points in the x-direction
-    y_points: 100       # Number of grid points in the y-direction
-    x_length: 1.0       # Domain length in x (normalized units)
-    y_length: 1.0       # Domain length in y (normalized units)
+    x_points: 50          # Number of grid points in the x-direction
+    y_points: 50          # Number of grid points in the y-direction
+    z_points: 50          # Number of grid points in the z-direction (for 3D)
+    x_length: 1.0         # Domain length in x (normalized units)
+    y_length: 1.0         # Domain length in y (normalized units)
+    z_length: 1.0         # Domain length in z (normalized units, for 3D)
 
   time:
-    dt: 0.001           # Time step (normalized time)
-    total_time: 1.0     # Total simulation time (normalized time)
+    dt: 0.001             # Time step (normalized time)
+    total_time: 1.0       # Total simulation time (normalized time)
 
   material:
-    epsilon: 1.0        # Normalized permittivity
-    mu: 1.0             # Normalized permeability
+    epsilon: 1.0          # Normalized permittivity
+    mu: 1.0               # Normalized permeability
 
   initial_conditions:
-    phi_amplitude: 0.01 # Amplitude of the initial scalar potential perturbation
-    A_amplitude: 0.0    # Amplitude of the initial vector potential perturbation
+    phi_amplitude: 0.01   # Amplitude of the initial scalar potential perturbation
+    A_amplitude: 0.0      # Amplitude of the initial vector potential perturbation
+    profile: "gaussian"   # Options: "gaussian", "spherical", "custom"
 
   boundary_conditions:
-    type: "advanced"    # Options: "dirichlet", "neumann", "advanced"
-    impedance: 0.1      # Impedance value for advanced boundary conditions
+    type: "advanced"      # Options: "dirichlet", "neumann", "advanced"
+    impedance: 0.1        # Impedance value for advanced boundary conditions
+
+  cavity:
+    type: "sphere"        # Options: "box", "sphere", "cylinder", "toroid"
+    parameters:
+      radius: 0.4         # For sphere and cylinder
+      height: 0.8         # For cylinder
+      axis: "z"           # For cylinder, options: "x", "y", "z"
+      major_radius: 0.4   # For toroid
+      minor_radius: 0.1   # For toroid
+    wall_thickness: 0.05  # Thickness of cavity walls
 
   source:
     enabled: true
-    type: "gaussian"         # Options: "gaussian", "pulse", etc.
-    amplitude: 1.0           # Amplitude of the source term
-    frequency: 50.0          # Frequency (normalized units)
-    center: [0.5, 0.5]       # Center position in the domain
-    sigma: 0.05              # Spatial spread for a Gaussian source
-    modulation: "amplitude"  # Modulation scheme: amplitude, frequency, etc.
+    type: "gaussian"      # Options: "gaussian", "pulse", etc.
+    amplitude: 1.0        # Amplitude of the source term
+    frequency: 50.0       # Frequency (normalized units)
+    center: [0.5, 0.5, 0.5] # Center position in the domain
+    sigma: 0.05           # Spatial spread for a Gaussian source
+    modulation: "amplitude" # Modulation scheme: amplitude, frequency, etc.
 
   nonlinearity:
-    enabled: false       # Set to true to enable nonlinear effects
-    strength: 0.01       # Nonlinearity coefficient (normalized units)
+    enabled: false        # Set to true to enable nonlinear effects
+    strength: 0.01        # Nonlinearity coefficient (normalized units)
+
+  visualization:
+    slice_axis: "z"       # Axis for 2D slice rendering ("x", "y", or "z")
+    slice_position: 0.5   # Position of slice along axis (0.0 to 1.0)
+    volume_rendering: true # Enable 3D volume rendering
+    isosurface_levels: [0.005, 0.01, 0.02] # Levels for isosurface rendering
 
   output:
-    snapshot_interval: 5    # Time step interval between output snapshots
-    output_dir: "outputs"      # Directory for simulation outputs
+    snapshot_interval: 5  # Time step interval between output snapshots
+    output_dir: "outputs" # Directory for simulation outputs
