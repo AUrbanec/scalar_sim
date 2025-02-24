@@ -1,14 +1,20 @@
 # analysis.py
 
 import numpy as np
+import numba as nb
+from typing import Tuple, List, Dict, Any, Optional, Union
+import numpy.typing as npt
 
-def compute_gradient_2d(field, dx, dy):
+@nb.njit
+def compute_gradient_2d_optimized(field: npt.NDArray[np.float64], 
+                               dx: float, 
+                               dy: float) -> Tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]:
     """
-    Compute the gradient of a 2D field
+    Optimized computation of the gradient of a 2D field
     
     Parameters
     ----------
-    field : ndarray
+    field : npt.NDArray[np.float64]
         2D field array
     dx : float
         Grid spacing in x direction
@@ -17,22 +23,37 @@ def compute_gradient_2d(field, dx, dy):
         
     Returns
     -------
-    tuple
+    Tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]
         (gradient_x, gradient_y)
     """
+    nx, ny = field.shape
     grad_x = np.zeros_like(field)
     grad_y = np.zeros_like(field)
-    grad_x[1:-1, :] = (field[2:, :] - field[:-2, :]) / (2*dx)
-    grad_y[:, 1:-1] = (field[:, 2:] - field[:, :-2]) / (2*dy)
+    
+    # Inside region
+    for i in range(1, nx-1):
+        for j in range(ny):
+            grad_x[i, j] = (field[i+1, j] - field[i-1, j]) / (2*dx)
+    
+    for i in range(nx):
+        for j in range(1, ny-1):
+            grad_y[i, j] = (field[i, j+1] - field[i, j-1]) / (2*dy)
+    
     return grad_x, grad_y
 
-def compute_gradient_3d(field, dx, dy, dz):
+@nb.njit
+def compute_gradient_3d_optimized(field: npt.NDArray[np.float64], 
+                               dx: float, 
+                               dy: float, 
+                               dz: float) -> Tuple[npt.NDArray[np.float64], 
+                                                npt.NDArray[np.float64], 
+                                                npt.NDArray[np.float64]]:
     """
-    Compute the gradient of a 3D field
+    Optimized computation of the gradient of a 3D field
     
     Parameters
     ----------
-    field : ndarray
+    field : npt.NDArray[np.float64]
         3D field array
     dx : float
         Grid spacing in x direction
@@ -43,37 +64,106 @@ def compute_gradient_3d(field, dx, dy, dz):
         
     Returns
     -------
-    tuple
+    Tuple[npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.float64]]
         (gradient_x, gradient_y, gradient_z)
     """
+    nx, ny, nz = field.shape
     grad_x = np.zeros_like(field)
     grad_y = np.zeros_like(field)
     grad_z = np.zeros_like(field)
     
-    grad_x[1:-1, :, :] = (field[2:, :, :] - field[:-2, :, :]) / (2*dx)
-    grad_y[:, 1:-1, :] = (field[:, 2:, :] - field[:, :-2, :]) / (2*dy)
-    grad_z[:, :, 1:-1] = (field[:, :, 2:] - field[:, :, :-2]) / (2*dz)
+    # X gradient (with loop fusion for better locality)
+    for i in range(1, nx-1):
+        for j in range(ny):
+            for k in range(nz):
+                grad_x[i, j, k] = (field[i+1, j, k] - field[i-1, j, k]) / (2*dx)
+    
+    # Y gradient
+    for i in range(nx):
+        for j in range(1, ny-1):
+            for k in range(nz):
+                grad_y[i, j, k] = (field[i, j+1, k] - field[i, j-1, k]) / (2*dy)
+    
+    # Z gradient
+    for i in range(nx):
+        for j in range(ny):
+            for k in range(1, nz-1):
+                grad_z[i, j, k] = (field[i, j, k+1] - field[i, j, k-1]) / (2*dz)
     
     return grad_x, grad_y, grad_z
 
-def compute_gradient(field, dx, dy, dz=None):
+def compute_gradient_2d(field: npt.NDArray[np.float64], 
+                     dx: float, 
+                     dy: float) -> Tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]:
+    """
+    Compute the gradient of a 2D field
+    
+    Parameters
+    ----------
+    field : npt.NDArray[np.float64]
+        2D field array
+    dx : float
+        Grid spacing in x direction
+    dy : float
+        Grid spacing in y direction
+        
+    Returns
+    -------
+    Tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]
+        (gradient_x, gradient_y)
+    """
+    return compute_gradient_2d_optimized(field, dx, dy)
+
+def compute_gradient_3d(field: npt.NDArray[np.float64], 
+                     dx: float, 
+                     dy: float, 
+                     dz: float) -> Tuple[npt.NDArray[np.float64], 
+                                       npt.NDArray[np.float64], 
+                                       npt.NDArray[np.float64]]:
+    """
+    Compute the gradient of a 3D field
+    
+    Parameters
+    ----------
+    field : npt.NDArray[np.float64]
+        3D field array
+    dx : float
+        Grid spacing in x direction
+    dy : float
+        Grid spacing in y direction
+    dz : float
+        Grid spacing in z direction
+        
+    Returns
+    -------
+    Tuple[npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.float64]]
+        (gradient_x, gradient_y, gradient_z)
+    """
+    return compute_gradient_3d_optimized(field, dx, dy, dz)
+
+def compute_gradient(field: npt.NDArray[np.float64], 
+                  dx: float, 
+                  dy: float, 
+                  dz: Optional[float] = None) -> Union[Tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]],
+                                                    Tuple[npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.float64]]]:
     """
     Compute the gradient of a field (2D or 3D)
     
     Parameters
     ----------
-    field : ndarray
+    field : npt.NDArray[np.float64]
         Field array
     dx : float
         Grid spacing in x direction
     dy : float
         Grid spacing in y direction
-    dz : float, optional
+    dz : Optional[float], default=None
         Grid spacing in z direction (for 3D)
         
     Returns
     -------
-    tuple
+    Union[Tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]], 
+          Tuple[npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.float64]]]
         (gradient_x, gradient_y) for 2D or (gradient_x, gradient_y, gradient_z) for 3D
     """
     if dz is None or len(field.shape) == 2:
@@ -81,15 +171,21 @@ def compute_gradient(field, dx, dy, dz=None):
     else:
         return compute_gradient_3d(field, dx, dy, dz)
 
-def compute_scalar_energy_2d(phi, phi_old, dt, c, dx, dy):
+@nb.njit
+def compute_scalar_energy_2d_optimized(phi: npt.NDArray[np.float64], 
+                                    phi_old: npt.NDArray[np.float64], 
+                                    dt: float, 
+                                    c: float, 
+                                    dx: float, 
+                                    dy: float) -> npt.NDArray[np.float64]:
     """
-    Compute the energy density of the scalar field in 2D
+    Optimized computation of the energy density of the scalar field in 2D
     
     Parameters
     ----------
-    phi : ndarray
+    phi : npt.NDArray[np.float64]
         Current scalar potential field
-    phi_old : ndarray
+    phi_old : npt.NDArray[np.float64]
         Previous scalar potential field
     dt : float
         Time step
@@ -102,24 +198,53 @@ def compute_scalar_energy_2d(phi, phi_old, dt, c, dx, dy):
         
     Returns
     -------
-    ndarray
+    npt.NDArray[np.float64]
         Scalar energy density field
     """
-    dphi_dt = (phi - phi_old) / dt
-    grad_x, grad_y = compute_gradient_2d(phi, dx, dy)
-    grad_phi_sq = grad_x**2 + grad_y**2
-    energy = 0.5 * (dphi_dt**2) + 0.5 * (c**2) * grad_phi_sq
+    nx, ny = phi.shape
+    dphi_dt = np.zeros_like(phi)
+    grad_x = np.zeros_like(phi)
+    grad_y = np.zeros_like(phi)
+    energy = np.zeros_like(phi)
+    
+    # Time derivative
+    for i in range(nx):
+        for j in range(ny):
+            dphi_dt[i, j] = (phi[i, j] - phi_old[i, j]) / dt
+    
+    # Spatial gradients
+    for i in range(1, nx-1):
+        for j in range(ny):
+            grad_x[i, j] = (phi[i+1, j] - phi[i-1, j]) / (2*dx)
+    
+    for i in range(nx):
+        for j in range(1, ny-1):
+            grad_y[i, j] = (phi[i, j+1] - phi[i, j-1]) / (2*dy)
+    
+    # Energy calculation
+    for i in range(nx):
+        for j in range(ny):
+            grad_phi_sq = grad_x[i, j]**2 + grad_y[i, j]**2
+            energy[i, j] = 0.5 * (dphi_dt[i, j]**2) + 0.5 * (c**2) * grad_phi_sq
+    
     return energy
 
-def compute_scalar_energy_3d(phi, phi_old, dt, c, dx, dy, dz):
+@nb.njit
+def compute_scalar_energy_3d_optimized(phi: npt.NDArray[np.float64], 
+                                    phi_old: npt.NDArray[np.float64], 
+                                    dt: float, 
+                                    c: float, 
+                                    dx: float, 
+                                    dy: float, 
+                                    dz: float) -> npt.NDArray[np.float64]:
     """
-    Compute the energy density of the scalar field in 3D
+    Optimized computation of the energy density of the scalar field in 3D
     
     Parameters
     ----------
-    phi : ndarray
+    phi : npt.NDArray[np.float64]
         Current scalar potential field
-    phi_old : ndarray
+    phi_old : npt.NDArray[np.float64]
         Previous scalar potential field
     dt : float
         Time step
@@ -134,24 +259,61 @@ def compute_scalar_energy_3d(phi, phi_old, dt, c, dx, dy, dz):
         
     Returns
     -------
-    ndarray
+    npt.NDArray[np.float64]
         Scalar energy density field
     """
-    dphi_dt = (phi - phi_old) / dt
-    grad_x, grad_y, grad_z = compute_gradient_3d(phi, dx, dy, dz)
-    grad_phi_sq = grad_x**2 + grad_y**2 + grad_z**2
-    energy = 0.5 * (dphi_dt**2) + 0.5 * (c**2) * grad_phi_sq
+    nx, ny, nz = phi.shape
+    dphi_dt = np.zeros_like(phi)
+    grad_x = np.zeros_like(phi)
+    grad_y = np.zeros_like(phi)
+    grad_z = np.zeros_like(phi)
+    energy = np.zeros_like(phi)
+    
+    # Time derivative
+    for i in range(nx):
+        for j in range(ny):
+            for k in range(nz):
+                dphi_dt[i, j, k] = (phi[i, j, k] - phi_old[i, j, k]) / dt
+    
+    # Spatial gradients
+    for i in range(1, nx-1):
+        for j in range(ny):
+            for k in range(nz):
+                grad_x[i, j, k] = (phi[i+1, j, k] - phi[i-1, j, k]) / (2*dx)
+    
+    for i in range(nx):
+        for j in range(1, ny-1):
+            for k in range(nz):
+                grad_y[i, j, k] = (phi[i, j+1, k] - phi[i, j-1, k]) / (2*dy)
+    
+    for i in range(nx):
+        for j in range(ny):
+            for k in range(1, nz-1):
+                grad_z[i, j, k] = (phi[i, j, k+1] - phi[i, j, k-1]) / (2*dz)
+    
+    # Energy calculation
+    for i in range(nx):
+        for j in range(ny):
+            for k in range(nz):
+                grad_phi_sq = grad_x[i, j, k]**2 + grad_y[i, j, k]**2 + grad_z[i, j, k]**2
+                energy[i, j, k] = 0.5 * (dphi_dt[i, j, k]**2) + 0.5 * (c**2) * grad_phi_sq
+    
     return energy
 
-def compute_scalar_energy(phi, phi_old, dt, c, dx, dy, dz=None):
+def compute_scalar_energy_2d(phi: npt.NDArray[np.float64], 
+                          phi_old: npt.NDArray[np.float64], 
+                          dt: float, 
+                          c: float, 
+                          dx: float, 
+                          dy: float) -> npt.NDArray[np.float64]:
     """
-    Compute the energy density of the scalar field (2D or 3D)
+    Compute the energy density of the scalar field in 2D
     
     Parameters
     ----------
-    phi : ndarray
+    phi : npt.NDArray[np.float64]
         Current scalar potential field
-    phi_old : ndarray
+    phi_old : npt.NDArray[np.float64]
         Previous scalar potential field
     dt : float
         Time step
@@ -161,12 +323,78 @@ def compute_scalar_energy(phi, phi_old, dt, c, dx, dy, dz=None):
         Grid spacing in x direction
     dy : float
         Grid spacing in y direction
-    dz : float, optional
+        
+    Returns
+    -------
+    npt.NDArray[np.float64]
+        Scalar energy density field
+    """
+    return compute_scalar_energy_2d_optimized(phi, phi_old, dt, c, dx, dy)
+
+def compute_scalar_energy_3d(phi: npt.NDArray[np.float64], 
+                          phi_old: npt.NDArray[np.float64], 
+                          dt: float, 
+                          c: float, 
+                          dx: float, 
+                          dy: float, 
+                          dz: float) -> npt.NDArray[np.float64]:
+    """
+    Compute the energy density of the scalar field in 3D
+    
+    Parameters
+    ----------
+    phi : npt.NDArray[np.float64]
+        Current scalar potential field
+    phi_old : npt.NDArray[np.float64]
+        Previous scalar potential field
+    dt : float
+        Time step
+    c : float
+        Wave speed
+    dx : float
+        Grid spacing in x direction
+    dy : float
+        Grid spacing in y direction
+    dz : float
+        Grid spacing in z direction
+        
+    Returns
+    -------
+    npt.NDArray[np.float64]
+        Scalar energy density field
+    """
+    return compute_scalar_energy_3d_optimized(phi, phi_old, dt, c, dx, dy, dz)
+
+def compute_scalar_energy(phi: npt.NDArray[np.float64], 
+                       phi_old: npt.NDArray[np.float64], 
+                       dt: float, 
+                       c: float, 
+                       dx: float, 
+                       dy: float, 
+                       dz: Optional[float] = None) -> npt.NDArray[np.float64]:
+    """
+    Compute the energy density of the scalar field (2D or 3D)
+    
+    Parameters
+    ----------
+    phi : npt.NDArray[np.float64]
+        Current scalar potential field
+    phi_old : npt.NDArray[np.float64]
+        Previous scalar potential field
+    dt : float
+        Time step
+    c : float
+        Wave speed
+    dx : float
+        Grid spacing in x direction
+    dy : float
+        Grid spacing in y direction
+    dz : Optional[float], default=None
         Grid spacing in z direction (for 3D)
         
     Returns
     -------
-    ndarray
+    npt.NDArray[np.float64]
         Scalar energy density field
     """
     if dz is None or len(phi.shape) == 2:
@@ -174,15 +402,21 @@ def compute_scalar_energy(phi, phi_old, dt, c, dx, dy, dz=None):
     else:
         return compute_scalar_energy_3d(phi, phi_old, dt, c, dx, dy, dz)
 
-def compute_vector_energy_2d(Ax, Ay, dt, c, dx, dy):
+@nb.njit
+def compute_vector_energy_2d_optimized(Ax: npt.NDArray[np.float64], 
+                                    Ay: npt.NDArray[np.float64], 
+                                    dt: float, 
+                                    c: float, 
+                                    dx: float, 
+                                    dy: float) -> npt.NDArray[np.float64]:
     """
-    Compute the energy density of the vector field in 2D
+    Optimized computation of the energy density of the vector field in 2D
     
     Parameters
     ----------
-    Ax : ndarray
+    Ax : npt.NDArray[np.float64]
         X component of vector potential
-    Ay : ndarray
+    Ay : npt.NDArray[np.float64]
         Y component of vector potential
     dt : float
         Time step
@@ -195,26 +429,62 @@ def compute_vector_energy_2d(Ax, Ay, dt, c, dx, dy):
         
     Returns
     -------
-    ndarray
+    npt.NDArray[np.float64]
         Vector energy density field
     """
-    grad_Ax_x, grad_Ax_y = compute_gradient_2d(Ax, dx, dy)
-    grad_Ay_x, grad_Ay_y = compute_gradient_2d(Ay, dx, dy)
-    grad_A_sq = grad_Ax_x**2 + grad_Ax_y**2 + grad_Ay_x**2 + grad_Ay_y**2
-    energy = 0.5 * (c**2) * grad_A_sq
+    nx, ny = Ax.shape
+    grad_Ax_x = np.zeros_like(Ax)
+    grad_Ax_y = np.zeros_like(Ax)
+    grad_Ay_x = np.zeros_like(Ay)
+    grad_Ay_y = np.zeros_like(Ay)
+    energy = np.zeros_like(Ax)
+    
+    # Compute gradients of Ax
+    for i in range(1, nx-1):
+        for j in range(ny):
+            grad_Ax_x[i, j] = (Ax[i+1, j] - Ax[i-1, j]) / (2*dx)
+    
+    for i in range(nx):
+        for j in range(1, ny-1):
+            grad_Ax_y[i, j] = (Ax[i, j+1] - Ax[i, j-1]) / (2*dy)
+    
+    # Compute gradients of Ay
+    for i in range(1, nx-1):
+        for j in range(ny):
+            grad_Ay_x[i, j] = (Ay[i+1, j] - Ay[i-1, j]) / (2*dx)
+    
+    for i in range(nx):
+        for j in range(1, ny-1):
+            grad_Ay_y[i, j] = (Ay[i, j+1] - Ay[i, j-1]) / (2*dy)
+    
+    # Compute energy
+    for i in range(nx):
+        for j in range(ny):
+            grad_A_sq = (grad_Ax_x[i, j]**2 + grad_Ax_y[i, j]**2 + 
+                        grad_Ay_x[i, j]**2 + grad_Ay_y[i, j]**2)
+            energy[i, j] = 0.5 * (c**2) * grad_A_sq
+    
     return energy
 
-def compute_vector_energy_3d(Ax, Ay, Az, dt, c, dx, dy, dz):
+@nb.njit
+def compute_vector_energy_3d_optimized(Ax: npt.NDArray[np.float64], 
+                                    Ay: npt.NDArray[np.float64], 
+                                    Az: npt.NDArray[np.float64], 
+                                    dt: float, 
+                                    c: float, 
+                                    dx: float, 
+                                    dy: float, 
+                                    dz: float) -> npt.NDArray[np.float64]:
     """
-    Compute the energy density of the vector field in 3D
+    Optimized computation of the energy density of the vector field in 3D
     
     Parameters
     ----------
-    Ax : ndarray
+    Ax : npt.NDArray[np.float64]
         X component of vector potential
-    Ay : ndarray
+    Ay : npt.NDArray[np.float64]
         Y component of vector potential
-    Az : ndarray
+    Az : npt.NDArray[np.float64]
         Z component of vector potential
     dt : float
         Time step
@@ -229,27 +499,162 @@ def compute_vector_energy_3d(Ax, Ay, Az, dt, c, dx, dy, dz):
         
     Returns
     -------
-    ndarray
+    npt.NDArray[np.float64]
         Vector energy density field
     """
-    grad_Ax_x, grad_Ax_y, grad_Ax_z = compute_gradient_3d(Ax, dx, dy, dz)
-    grad_Ay_x, grad_Ay_y, grad_Ay_z = compute_gradient_3d(Ay, dx, dy, dz)
-    grad_Az_x, grad_Az_y, grad_Az_z = compute_gradient_3d(Az, dx, dy, dz)
+    nx, ny, nz = Ax.shape
+    grad_Ax_x = np.zeros_like(Ax)
+    grad_Ax_y = np.zeros_like(Ax)
+    grad_Ax_z = np.zeros_like(Ax)
+    grad_Ay_x = np.zeros_like(Ay)
+    grad_Ay_y = np.zeros_like(Ay)
+    grad_Ay_z = np.zeros_like(Ay)
+    grad_Az_x = np.zeros_like(Az)
+    grad_Az_y = np.zeros_like(Az)
+    grad_Az_z = np.zeros_like(Az)
+    energy = np.zeros_like(Ax)
     
-    grad_A_sq = (grad_Ax_x**2 + grad_Ax_y**2 + grad_Ax_z**2 +
-                 grad_Ay_x**2 + grad_Ay_y**2 + grad_Ay_z**2 +
-                 grad_Az_x**2 + grad_Az_y**2 + grad_Az_z**2)
-                 
-    energy = 0.5 * (c**2) * grad_A_sq
+    # Compute gradients of Ax
+    for i in range(1, nx-1):
+        for j in range(ny):
+            for k in range(nz):
+                grad_Ax_x[i, j, k] = (Ax[i+1, j, k] - Ax[i-1, j, k]) / (2*dx)
+    
+    for i in range(nx):
+        for j in range(1, ny-1):
+            for k in range(nz):
+                grad_Ax_y[i, j, k] = (Ax[i, j+1, k] - Ax[i, j-1, k]) / (2*dy)
+    
+    for i in range(nx):
+        for j in range(ny):
+            for k in range(1, nz-1):
+                grad_Ax_z[i, j, k] = (Ax[i, j, k+1] - Ax[i, j, k-1]) / (2*dz)
+    
+    # Compute gradients of Ay
+    for i in range(1, nx-1):
+        for j in range(ny):
+            for k in range(nz):
+                grad_Ay_x[i, j, k] = (Ay[i+1, j, k] - Ay[i-1, j, k]) / (2*dx)
+    
+    for i in range(nx):
+        for j in range(1, ny-1):
+            for k in range(nz):
+                grad_Ay_y[i, j, k] = (Ay[i, j+1, k] - Ay[i, j-1, k]) / (2*dy)
+    
+    for i in range(nx):
+        for j in range(ny):
+            for k in range(1, nz-1):
+                grad_Ay_z[i, j, k] = (Ay[i, j, k+1] - Ay[i, j, k-1]) / (2*dz)
+    
+    # Compute gradients of Az
+    for i in range(1, nx-1):
+        for j in range(ny):
+            for k in range(nz):
+                grad_Az_x[i, j, k] = (Az[i+1, j, k] - Az[i-1, j, k]) / (2*dx)
+    
+    for i in range(nx):
+        for j in range(1, ny-1):
+            for k in range(nz):
+                grad_Az_y[i, j, k] = (Az[i, j+1, k] - Az[i, j-1, k]) / (2*dy)
+    
+    for i in range(nx):
+        for j in range(ny):
+            for k in range(1, nz-1):
+                grad_Az_z[i, j, k] = (Az[i, j, k+1] - Az[i, j, k-1]) / (2*dz)
+    
+    # Compute energy
+    for i in range(nx):
+        for j in range(ny):
+            for k in range(nz):
+                grad_A_sq = (grad_Ax_x[i, j, k]**2 + grad_Ax_y[i, j, k]**2 + grad_Ax_z[i, j, k]**2 +
+                            grad_Ay_x[i, j, k]**2 + grad_Ay_y[i, j, k]**2 + grad_Ay_z[i, j, k]**2 +
+                            grad_Az_x[i, j, k]**2 + grad_Az_y[i, j, k]**2 + grad_Az_z[i, j, k]**2)
+                energy[i, j, k] = 0.5 * (c**2) * grad_A_sq
+    
     return energy
 
-def compute_vector_energy(A_components, dt, c, dx, dy, dz=None):
+def compute_vector_energy_2d(Ax: npt.NDArray[np.float64], 
+                          Ay: npt.NDArray[np.float64], 
+                          dt: float, 
+                          c: float, 
+                          dx: float, 
+                          dy: float) -> npt.NDArray[np.float64]:
+    """
+    Compute the energy density of the vector field in 2D
+    
+    Parameters
+    ----------
+    Ax : npt.NDArray[np.float64]
+        X component of vector potential
+    Ay : npt.NDArray[np.float64]
+        Y component of vector potential
+    dt : float
+        Time step
+    c : float
+        Wave speed
+    dx : float
+        Grid spacing in x direction
+    dy : float
+        Grid spacing in y direction
+        
+    Returns
+    -------
+    npt.NDArray[np.float64]
+        Vector energy density field
+    """
+    return compute_vector_energy_2d_optimized(Ax, Ay, dt, c, dx, dy)
+
+def compute_vector_energy_3d(Ax: npt.NDArray[np.float64], 
+                          Ay: npt.NDArray[np.float64], 
+                          Az: npt.NDArray[np.float64], 
+                          dt: float, 
+                          c: float, 
+                          dx: float, 
+                          dy: float, 
+                          dz: float) -> npt.NDArray[np.float64]:
+    """
+    Compute the energy density of the vector field in 3D
+    
+    Parameters
+    ----------
+    Ax : npt.NDArray[np.float64]
+        X component of vector potential
+    Ay : npt.NDArray[np.float64]
+        Y component of vector potential
+    Az : npt.NDArray[np.float64]
+        Z component of vector potential
+    dt : float
+        Time step
+    c : float
+        Wave speed
+    dx : float
+        Grid spacing in x direction
+    dy : float
+        Grid spacing in y direction
+    dz : float
+        Grid spacing in z direction
+        
+    Returns
+    -------
+    npt.NDArray[np.float64]
+        Vector energy density field
+    """
+    return compute_vector_energy_3d_optimized(Ax, Ay, Az, dt, c, dx, dy, dz)
+
+def compute_vector_energy(A_components: Union[Tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]], 
+                                           Tuple[npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.float64]]], 
+                       dt: float, 
+                       c: float, 
+                       dx: float, 
+                       dy: float, 
+                       dz: Optional[float] = None) -> npt.NDArray[np.float64]:
     """
     Compute the energy density of the vector field (2D or 3D)
     
     Parameters
     ----------
-    A_components : tuple
+    A_components : Union[Tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]], 
+                       Tuple[npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.float64]]]
         Vector potential components (Ax, Ay) for 2D or (Ax, Ay, Az) for 3D
     dt : float
         Time step
@@ -259,12 +664,12 @@ def compute_vector_energy(A_components, dt, c, dx, dy, dz=None):
         Grid spacing in x direction
     dy : float
         Grid spacing in y direction
-    dz : float, optional
+    dz : Optional[float], default=None
         Grid spacing in z direction (for 3D)
         
     Returns
     -------
-    ndarray
+    npt.NDArray[np.float64]
         Vector energy density field
     """
     if dz is None or len(A_components) == 2:
@@ -274,17 +679,25 @@ def compute_vector_energy(A_components, dt, c, dx, dy, dz=None):
         Ax, Ay, Az = A_components
         return compute_vector_energy_3d(Ax, Ay, Az, dt, c, dx, dy, dz)
 
-def compute_curl_3d(Ax, Ay, Az, dx, dy, dz):
+@nb.njit
+def compute_curl_3d_optimized(Ax: npt.NDArray[np.float64], 
+                           Ay: npt.NDArray[np.float64], 
+                           Az: npt.NDArray[np.float64], 
+                           dx: float, 
+                           dy: float, 
+                           dz: float) -> Tuple[npt.NDArray[np.float64], 
+                                            npt.NDArray[np.float64], 
+                                            npt.NDArray[np.float64]]:
     """
-    Compute the curl of a 3D vector field
+    Optimized computation of the curl of a 3D vector field
     
     Parameters
     ----------
-    Ax : ndarray
+    Ax : npt.NDArray[np.float64]
         X component of vector field
-    Ay : ndarray
+    Ay : npt.NDArray[np.float64]
         Y component of vector field
-    Az : ndarray
+    Az : npt.NDArray[np.float64]
         Z component of vector field
     dx : float
         Grid spacing in x direction
@@ -295,34 +708,82 @@ def compute_curl_3d(Ax, Ay, Az, dx, dy, dz):
         
     Returns
     -------
-    tuple
+    Tuple[npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.float64]]
         (curl_x, curl_y, curl_z)
     """
+    nx, ny, nz = Ax.shape
     curl_x = np.zeros_like(Ax)
     curl_y = np.zeros_like(Ay)
     curl_z = np.zeros_like(Az)
     
     # dAz/dy - dAy/dz
-    curl_x[:, 1:-1, 1:-1] = ((Az[:, 2:, 1:-1] - Az[:, :-2, 1:-1]) / (2*dy) - 
-                              (Ay[:, 1:-1, 2:] - Ay[:, 1:-1, :-2]) / (2*dz))
+    for i in range(nx):
+        for j in range(1, ny-1):
+            for k in range(1, nz-1):
+                curl_x[i, j, k] = ((Az[i, j+1, k] - Az[i, j-1, k]) / (2*dy) - 
+                                  (Ay[i, j, k+1] - Ay[i, j, k-1]) / (2*dz))
     
     # dAx/dz - dAz/dx
-    curl_y[1:-1, :, 1:-1] = ((Ax[1:-1, :, 2:] - Ax[1:-1, :, :-2]) / (2*dz) - 
-                              (Az[2:, :, 1:-1] - Az[:-2, :, 1:-1]) / (2*dx))
+    for i in range(1, nx-1):
+        for j in range(ny):
+            for k in range(1, nz-1):
+                curl_y[i, j, k] = ((Ax[i, j, k+1] - Ax[i, j, k-1]) / (2*dz) - 
+                                  (Az[i+1, j, k] - Az[i-1, j, k]) / (2*dx))
     
     # dAy/dx - dAx/dy
-    curl_z[1:-1, 1:-1, :] = ((Ay[2:, 1:-1, :] - Ay[:-2, 1:-1, :]) / (2*dx) - 
-                              (Ax[1:-1, 2:, :] - Ax[1:-1, :-2, :]) / (2*dy))
+    for i in range(1, nx-1):
+        for j in range(1, ny-1):
+            for k in range(nz):
+                curl_z[i, j, k] = ((Ay[i+1, j, k] - Ay[i-1, j, k]) / (2*dx) - 
+                                  (Ax[i, j+1, k] - Ax[i, j-1, k]) / (2*dy))
     
     return curl_x, curl_y, curl_z
 
-def compute_total_energies(snapshots, dt, c, dx, dy, dz=None):
+def compute_curl_3d(Ax: npt.NDArray[np.float64], 
+                 Ay: npt.NDArray[np.float64], 
+                 Az: npt.NDArray[np.float64], 
+                 dx: float, 
+                 dy: float, 
+                 dz: float) -> Tuple[npt.NDArray[np.float64], 
+                                   npt.NDArray[np.float64], 
+                                   npt.NDArray[np.float64]]:
+    """
+    Compute the curl of a 3D vector field
+    
+    Parameters
+    ----------
+    Ax : npt.NDArray[np.float64]
+        X component of vector field
+    Ay : npt.NDArray[np.float64]
+        Y component of vector field
+    Az : npt.NDArray[np.float64]
+        Z component of vector field
+    dx : float
+        Grid spacing in x direction
+    dy : float
+        Grid spacing in y direction
+    dz : float
+        Grid spacing in z direction
+        
+    Returns
+    -------
+    Tuple[npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.float64]]
+        (curl_x, curl_y, curl_z)
+    """
+    return compute_curl_3d_optimized(Ax, Ay, Az, dx, dy, dz)
+
+def compute_total_energies(snapshots: List[Dict[str, Any]], 
+                        dt: float, 
+                        c: float, 
+                        dx: float, 
+                        dy: float, 
+                        dz: Optional[float] = None) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
     Compute total scalar and vector energies for all snapshots
     
     Parameters
     ----------
-    snapshots : list
+    snapshots : List[Dict[str, Any]]
         List of snapshot dictionaries
     dt : float
         Time step
@@ -332,12 +793,12 @@ def compute_total_energies(snapshots, dt, c, dx, dy, dz=None):
         Grid spacing in x direction
     dy : float
         Grid spacing in y direction
-    dz : float, optional
+    dz : Optional[float], default=None
         Grid spacing in z direction (for 3D)
         
     Returns
     -------
-    tuple
+    Tuple[np.ndarray, np.ndarray, np.ndarray]
         (times, scalar_energy_list, vector_energy_list)
     """
     times = []
