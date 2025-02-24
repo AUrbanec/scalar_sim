@@ -1,3 +1,4 @@
 # Ignore output files
 /outputs/
 /.venv/
+*/__pycache__/*

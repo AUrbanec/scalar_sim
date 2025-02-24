@@ -213,11 +213,17 @@ class Visualization:
         ax = fig.add_subplot(111, projection='3d')
         
         # Determine threshold values
-        phi_max = np.max(phi)
+        phi_max = np.max(np.abs(phi))
+        if phi_max == 0:
+            print("Warning: Maximum phi value is zero, no isosurfaces to display")
+            return None
+            
         levels = [level * phi_max for level in self.isosurface_levels]
         
         # Plot isosurfaces
         colors_list = ['blue', 'green', 'red']
+        isosurfaces_plotted = 0
+        
         for i, level in enumerate(levels):
             if i < len(colors_list):
                 color = colors_list[i]
@@ -225,6 +231,7 @@ class Visualization:
                 color = 'gray'
                 
             try:
+                # Using scikit-image's marching_cubes algorithm
                 verts, faces, _, _ = measure.marching_cubes(phi, level)
                 
                 # Scale vertices to physical coordinates
@@ -235,8 +242,36 @@ class Visualization:
                 # Create polygon collection
                 mesh = Poly3DCollection(verts[faces], alpha=0.3, color=color)
                 ax.add_collection3d(mesh)
-            except:
-                print(f"Warning: Could not create isosurface for level {level}")
+                isosurfaces_plotted += 1
+            except Exception as e:
+                print(f"Warning: Could not create isosurface for level {level}. Error: {str(e)}")
+        
+        # If we couldn't plot any isosurfaces, try with lower levels
+        if isosurfaces_plotted == 0:
+            lower_levels = [0.001, 0.002, 0.003]
+            for i, level in enumerate(lower_levels):
+                try:
+                    level_value = level * phi_max
+                    verts, faces, _, _ = measure.marching_cubes(phi, level_value)
+                    
+                    # Scale vertices to physical coordinates
+                    verts[:, 0] = verts[:, 0] * self.grid.dx
+                    verts[:, 1] = verts[:, 1] * self.grid.dy
+                    verts[:, 2] = verts[:, 2] * self.grid.dz
+                    
+                    # Create polygon collection
+                    mesh = Poly3DCollection(verts[faces], alpha=0.3, color='purple')
+                    ax.add_collection3d(mesh)
+                    isosurfaces_plotted += 1
+                    print(f"Successfully plotted lower level isosurface at {level} * max_phi")
+                    break  # Stop after successfully plotting one isosurface
+                except Exception as e:
+                    continue
+        
+        # If still no isosurfaces, return None
+        if isosurfaces_plotted == 0:
+            print("Could not create any isosurfaces. Check field values and try different isosurface levels.")
+            return None
         
         # Set plot limits and labels
         ax.set_xlim(0, self.grid.x_length)
@@ -439,6 +474,135 @@ class Visualization:
         anim.save(os.path.join(self.output_dir, save_filename), writer='ffmpeg')
         plt.close(fig)
 
+    def animate_volume_snapshots(self, snapshots, save_filename="volume_animation.mp4"):
+        """
+        Create an animation of 3D volume snapshots
+        
+        Parameters
+        ----------
+        snapshots : list
+            List of snapshot dictionaries
+        save_filename : str
+            Filename for the animation
+        """
+        if not VOLUME_RENDER_AVAILABLE:
+            print("Warning: Volume rendering libraries not available. Install scikit-image for 3D visualization.")
+            return
+            
+        # Determine threshold values based on maximum phi across all snapshots
+        all_phi_max = max([np.max(np.abs(snapshot['phi'])) for snapshot in snapshots])
+        if all_phi_max == 0:
+            print("Warning: Maximum phi value is zero across all snapshots, no isosurfaces to display")
+            return
+        
+        # Use a consistent level for all frames
+        level = 0.01 * all_phi_max  # Use a single level for smoother animation
+        
+        # Create figure
+        fig = plt.figure(figsize=(10, 8))
+        
+        # Try to create the first frame to test the level
+        test_phi = snapshots[0]['phi']
+        try:
+            verts, faces, _, _ = measure.marching_cubes(test_phi, level)
+        except Exception as e:
+            # If the level is too high, try a lower level
+            print(f"Initial level setting failed. Trying a lower level. Error: {str(e)}")
+            level = 0.005 * all_phi_max
+            try:
+                verts, faces, _, _ = measure.marching_cubes(test_phi, level)
+            except Exception as e:
+                # If still failing, try with absolute values
+                print(f"Second level attempt failed. Trying with absolute values. Error: {str(e)}")
+                level = 0.001 * all_phi_max
+                try:
+                    verts, faces, _, _ = measure.marching_cubes(np.abs(test_phi), level)
+                    # If this works, use absolute values for all frames
+                    use_abs = True
+                except Exception as e:
+                    print(f"All attempts to create isosurfaces failed. Error: {str(e)}")
+                    return
+        else:
+            use_abs = False
+        
+        print(f"Creating 3D volume animation with isosurface level {level:.6f} (use_abs={use_abs})")
+        
+        # Function to create a frame
+        def make_frame(i):
+            snapshot = snapshots[i]
+            phi = snapshot['phi']
+            if use_abs:
+                phi = np.abs(phi)
+            step = snapshot['step']
+            
+            # Clear previous frame
+            plt.clf()
+            ax = fig.add_subplot(111, projection='3d')
+            
+            try:
+                # Using scikit-image's marching_cubes algorithm
+                verts, faces, _, _ = measure.marching_cubes(phi, level)
+                
+                # Scale vertices to physical coordinates
+                verts[:, 0] = verts[:, 0] * self.grid.dx
+                verts[:, 1] = verts[:, 1] * self.grid.dy
+                verts[:, 2] = verts[:, 2] * self.grid.dz
+                
+                # Create polygon collection
+                mesh = Poly3DCollection(verts[faces], alpha=0.5, color='blue')
+                ax.add_collection3d(mesh)
+                
+                # If we're using absolute values, try to plot the negative isosurface as well
+                if not use_abs:
+                    try:
+                        neg_verts, neg_faces, _, _ = measure.marching_cubes(phi, -level)
+                        
+                        # Scale vertices to physical coordinates
+                        neg_verts[:, 0] = neg_verts[:, 0] * self.grid.dx
+                        neg_verts[:, 1] = neg_verts[:, 1] * self.grid.dy
+                        neg_verts[:, 2] = neg_verts[:, 2] * self.grid.dz
+                        
+                        # Create polygon collection for negative values
+                        neg_mesh = Poly3DCollection(neg_verts[neg_faces], alpha=0.5, color='red')
+                        ax.add_collection3d(neg_mesh)
+                    except Exception:
+                        # It's okay if this fails, we might not have negative values
+                        pass
+                
+                # Set plot limits and labels
+                ax.set_xlim(0, self.grid.x_length)
+                ax.set_ylim(0, self.grid.y_length)
+                ax.set_zlim(0, self.grid.z_length)
+                ax.set_xlabel('X')
+                ax.set_ylabel('Y')
+                ax.set_zlabel('Z')
+                ax.set_title(f'Scalar Potential ϕ Isosurface (Step {step})')
+                
+                # Choose view based on frame number for a rotating effect
+                # Start with a fixed elevation for stability
+                elev = 30
+                # Rotate the azimuth for a spinning effect, but not too fast
+                azim = (i * 2) % 360
+                
+                ax.view_init(elev=elev, azim=azim)
+                
+            except Exception as e:
+                print(f"Warning: Could not create isosurface for frame {i}. Error: {str(e)}")
+                ax.text(0.5, 0.5, 0.5, "No isosurface available", 
+                       horizontalalignment='center', verticalalignment='center')
+                
+            return [ax]
+        
+        # Create animation with a fixed frame rate
+        anim = animation.FuncAnimation(fig, make_frame, frames=len(snapshots), interval=200, blit=False)
+        
+        # Save animation
+        writer = animation.FFMpegWriter(fps=10)
+        volume_filename = os.path.join(self.output_dir, save_filename)
+        anim.save(volume_filename, writer=writer)
+        plt.close(fig)
+        print(f"3D volume animation saved to {volume_filename}")
+    
     def animate_snapshots(self, snapshots, save_filename="simulation_animation.mp4"):
         """
         Create an animation of snapshots (2D or 3D)
@@ -453,7 +617,12 @@ class Visualization:
         if self.dimension == 2:
             self.animate_snapshots_2d(snapshots, save_filename)
         else:
+            # Create the standard 2D slice animation
             self.animate_snapshots_3d(snapshots, save_filename)
+            
+            # Also create a 3D volume animation if volume rendering is enabled
+            if self.volume_rendering:
+                self.animate_volume_snapshots(snapshots, "volume_animation.mp4")
 
     def plot_energy_time_series(self, times, scalar_energy, vector_energy):
         """
