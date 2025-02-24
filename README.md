@@ -1,4 +1,4 @@
-```markdown
+
 # Scalar Wave Simulation Framework
 
 This repository contains an advanced simulation framework designed to model the excitation and propagation of scalar (longitudinal) electromagnetic waves within a resonant structure. The framework has been specifically enhanced to facilitate research into transmitter designs that predominantly excite the scalar mode, as well as to help optimize resonant cavity geometries and boundary conditions.
