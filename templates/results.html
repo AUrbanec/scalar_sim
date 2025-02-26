@@ -17,7 +17,7 @@
     </div>
 </div>
 
-{% if not snapshots and not animation and not volume_animation and not energy_file %}
+{% if not animation and not volume_animation and not energy_file %}
 <div class="alert alert-info" role="alert">
     <i class="fas fa-info-circle me-2"></i> No simulation results available yet. Run a simulation first.
 </div>
@@ -79,105 +79,5 @@
 </div>
 {% endif %}
 
-<!-- Snapshots Gallery -->
-{% if snapshots %}
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <span><i class="fas fa-images me-2"></i> Snapshot Gallery</span>
-                <div>
-                    <button id="prev-page" class="btn btn-sm btn-outline-primary">
-                        <i class="fas fa-chevron-left"></i>
-                    </button>
-                    <span id="page-indicator" class="mx-2">Page 1 of 1</span>
-                    <button id="next-page" class="btn btn-sm btn-outline-primary">
-                        <i class="fas fa-chevron-right"></i>
-                    </button>
-                </div>
-            </div>
-            <div class="card-body">
-                <div id="snapshot-gallery" class="row">
-                    {% for snapshot in snapshots %}
-                    <div class="col-md-4 mb-4 snapshot-item">
-                        <div class="card h-100">
-                            <img src="{{ url_for('serve_output', filename=snapshot) }}" class="card-img-top" alt="{{ snapshot }}">
-                            <div class="card-body">
-                                <h6 class="card-title">{{ snapshot }}</h6>
-                                <div class="text-center mt-2">
-                                    <a href="{{ url_for('serve_output', filename=snapshot) }}" target="_blank" class="btn btn-sm btn-outline-primary">
-                                        <i class="fas fa-search-plus me-1"></i> View Full Size
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-{% endif %}
-
-{% endif %}
-{% endblock %}
-
-{% block extra_js %}
-{% if snapshots %}
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Pagination for snapshot gallery
-        const itemsPerPage = 6;
-        const snapshotItems = document.querySelectorAll('.snapshot-item');
-        const prevPageBtn = document.getElementById('prev-page');
-        const nextPageBtn = document.getElementById('next-page');
-        const pageIndicator = document.getElementById('page-indicator');
-        
-        let currentPage = 1;
-        const totalPages = Math.ceil(snapshotItems.length / itemsPerPage);
-        
-        function updatePageIndicator() {
-            pageIndicator.textContent = `Page ${currentPage} of ${totalPages}`;
-        }
-        
-        function showPage(page) {
-            const startIndex = (page - 1) * itemsPerPage;
-            const endIndex = startIndex + itemsPerPage;
-            
-            snapshotItems.forEach((item, index) => {
-                if (index >= startIndex && index < endIndex) {
-                    item.style.display = 'block';
-                } else {
-                    item.style.display = 'none';
-                }
-            });
-            
-            // Update button states
-            prevPageBtn.disabled = (page === 1);
-            nextPageBtn.disabled = (page === totalPages);
-            
-            // Update page indicator
-            updatePageIndicator();
-        }
-        
-        prevPageBtn.addEventListener('click', function() {
-            if (currentPage > 1) {
-                currentPage--;
-                showPage(currentPage);
-            }
-        });
-        
-        nextPageBtn.addEventListener('click', function() {
-            if (currentPage < totalPages) {
-                currentPage++;
-                showPage(currentPage);
-            }
-        });
-        
-        // Initialize pagination
-        showPage(1);
-    });
-</script>
 {% endif %}
 {% endblock %}

@@ -174,16 +174,14 @@ def simulation_status():
 @app.route('/results')
 def results():
     """Display simulation results"""
-    # Get a list of all output files
+    # Get a list of output files (animations and energy plot only)
     output_dir = 'outputs'
-    snapshot_files = sorted([f for f in os.listdir(output_dir) if f.startswith('snapshot_')])
     animation_file = 'simulation_animation.mp4' if os.path.exists(os.path.join(output_dir, 'simulation_animation.mp4')) else None
     volume_file = 'volume_animation.mp4' if os.path.exists(os.path.join(output_dir, 'volume_animation.mp4')) else None
     energy_file = 'energy_time_series.png' if os.path.exists(os.path.join(output_dir, 'energy_time_series.png')) else None
     
     return render_template(
         'results.html', 
-        snapshots=snapshot_files,
         animation=animation_file,
         volume_animation=volume_file,
         energy_file=energy_file
