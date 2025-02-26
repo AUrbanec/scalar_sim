@@ -1,0 +1,471 @@
+{% extends 'base.html' %}
+
+{% block title %}Documentation - Scalar Wave Simulation Framework{% endblock %}
+
+{% block extra_css %}
+<style>
+    .toc-container {
+        position: sticky;
+        top: 2rem;
+    }
+    
+    .toc-list {
+        border-left: 3px solid var(--primary-color);
+        padding-left: 1rem;
+    }
+    
+    .toc-link {
+        display: block;
+        margin-bottom: 0.75rem;
+        color: var(--dark-color);
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+    
+    .toc-link:hover {
+        color: var(--primary-color);
+        transform: translateX(5px);
+    }
+    
+    .toc-link.active {
+        color: var(--primary-color);
+        font-weight: 600;
+    }
+    
+    .doc-section {
+        padding-top: 1rem;
+        scroll-margin-top: 2rem;
+    }
+    
+    .doc-section code {
+        background-color: rgba(52, 152, 219, 0.1);
+        padding: 0.2rem 0.4rem;
+        border-radius: 4px;
+        color: var(--secondary-color);
+    }
+    
+    .code-block {
+        background-color: #f8f9fa;
+        border-left: 4px solid var(--primary-color);
+        padding: 1rem;
+        border-radius: 0 4px 4px 0;
+        margin: 1rem 0;
+        overflow-x: auto;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <h1 class="display-5 mb-0">
+                <i class="fas fa-book me-2"></i> Documentation
+            </h1>
+            <a href="{{ url_for('index') }}" class="btn btn-outline-primary">
+                <i class="fas fa-arrow-left me-2"></i> Back to Dashboard
+            </a>
+        </div>
+        <p class="text-muted mt-2">Comprehensive guide to the Scalar Wave Simulation Framework</p>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Table of Contents -->
+    <div class="col-lg-3 mb-4">
+        <div class="card toc-container">
+            <div class="card-header">
+                <i class="fas fa-list me-2"></i> Table of Contents
+            </div>
+            <div class="card-body">
+                <div class="toc-list">
+                    <a href="#overview" class="toc-link" data-section="overview">Overview</a>
+                    <a href="#features" class="toc-link" data-section="features">Features</a>
+                    <a href="#simulation-theory" class="toc-link" data-section="simulation-theory">Simulation Theory</a>
+                    <a href="#model-equations" class="toc-link" data-section="model-equations">Model Equations</a>
+                    <a href="#configuration" class="toc-link" data-section="configuration">Configuration</a>
+                    <a href="#running-simulations" class="toc-link" data-section="running-simulations">Running Simulations</a>
+                    <a href="#output-visualization" class="toc-link" data-section="output-visualization">Output & Visualization</a>
+                    <a href="#troubleshooting" class="toc-link" data-section="troubleshooting">Troubleshooting</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Documentation Content -->
+    <div class="col-lg-9">
+        <div class="card">
+            <div class="card-body">
+                <!-- Overview -->
+                <section id="overview" class="doc-section">
+                    <h2 class="mb-3">Overview</h2>
+                    <p>
+                        The Scalar Wave Simulation Framework is a Python-based tool that implements a finite-difference time-domain (FDTD) scheme
+                        to solve modified Maxwell equations in terms of the scalar potential (ϕ) and vector potential (A). 
+                    </p>
+                    <p>
+                        The primary goal is to study the conditions under which a predominantly scalar (longitudinal) mode can be excited 
+                        in a resonant cavity or parallel plate configuration. The simulation is particularly useful for experimental designs where:
+                    </p>
+                    <ul>
+                        <li>A modulated high-voltage source is used to excite the resonant structure.</li>
+                        <li>Advanced boundary conditions (e.g., impedance boundaries) are needed to support scalar modes.</li>
+                        <li>A detailed energy analysis is required to isolate the scalar component from conventional transverse modes.</li>
+                    </ul>
+                </section>
+                
+                <!-- Features -->
+                <section id="features" class="doc-section">
+                    <h2 class="mb-3">Features</h2>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card mb-3">
+                                <div class="card-body">
+                                    <h5><i class="fas fa-wave-square text-primary me-2"></i> Scalar and Vector Field Simulation</h5>
+                                    <p>Models both the scalar potential ϕ and the vector potential A using an FDTD leapfrog integration scheme.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card mb-3">
+                                <div class="card-body">
+                                    <h5><i class="fas fa-bolt text-primary me-2"></i> Time-Dependent Source</h5>
+                                    <p>Includes a configurable, modulated source term that simulates the high-frequency modulated voltage source used in transmitter experiments.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card mb-3">
+                                <div class="card-body">
+                                    <h5><i class="fas fa-border-style text-primary me-2"></i> Advanced Boundary Conditions</h5>
+                                    <p>Supports advanced impedance-based boundary conditions to better simulate physical resonant structures, beyond standard Dirichlet and Neumann options.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card mb-3">
+                                <div class="card-body">
+                                    <h5><i class="fas fa-bezier-curve text-primary me-2"></i> Nonlinear Effects</h5>
+                                    <p>Provides an option to include cubic nonlinear effects, which may become significant at high voltages.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card mb-3">
+                                <div class="card-body">
+                                    <h5><i class="fas fa-chart-bar text-primary me-2"></i> Energy Analysis</h5>
+                                    <p>Computes energy densities for both scalar and vector fields, and produces time-series plots to aid in the isolation of the scalar mode.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card mb-3">
+                                <div class="card-body">
+                                    <h5><i class="fas fa-cubes text-primary me-2"></i> Visualization</h5>
+                                    <p>Offers extensive visualization capabilities for both 2D and 3D simulations, including static snapshots and animations.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+                
+                <!-- Simulation Theory -->
+                <section id="simulation-theory" class="doc-section">
+                    <h2 class="mb-3">Simulation Theory</h2>
+                    <p>
+                        The simulation is based on a reformulation of Maxwell's equations in terms of potentials rather than fields. 
+                        This approach allows for a clearer distinction between the scalar (longitudinal) and vector (transverse) components.
+                    </p>
+                    <p>
+                        In the traditional Lorenz gauge approach, the scalar potential (ϕ) and vector potential (A) are coupled. 
+                        However, under specific conditions such as resonant cavities with specialized boundary conditions, 
+                        the scalar component can be preferentially excited.
+                    </p>
+                    <p>
+                        The simulation uses a finite-difference time-domain (FDTD) approach to solve the wave equations for both potentials.
+                        This method discretizes both time and space, allowing for a time-stepping approach to evolve the system.
+                    </p>
+                </section>
+                
+                <!-- Model Equations -->
+                <section id="model-equations" class="doc-section">
+                    <h2 class="mb-3">Model Equations</h2>
+                    <p>
+                        The simulation solves the following wave equations for the scalar and vector potentials:
+                    </p>
+                    <div class="code-block">
+                        <p>Scalar potential equation:</p>
+                        <p>∇²ϕ - (1/c²) * ∂²ϕ/∂t² = -ρ/ε₀ + nonlinear_terms</p>
+                        <br>
+                        <p>Vector potential equation:</p>
+                        <p>∇²A - (1/c²) * ∂²A/∂t² = -μ₀J + nonlinear_terms</p>
+                    </div>
+                    <p>
+                        Where:
+                    </p>
+                    <ul>
+                        <li>ϕ is the scalar potential</li>
+                        <li>A is the vector potential</li>
+                        <li>c is the speed of light (normalized in the simulation)</li>
+                        <li>ρ is the charge density</li>
+                        <li>ε₀ is the permittivity of free space</li>
+                        <li>μ₀ is the permeability of free space</li>
+                        <li>J is the current density</li>
+                    </ul>
+                    <p>
+                        The nonlinear terms (when enabled) introduce cubic nonlinearity to model high-power effects.
+                    </p>
+                </section>
+                
+                <!-- Configuration -->
+                <section id="configuration" class="doc-section">
+                    <h2 class="mb-3">Configuration</h2>
+                    <p>
+                        The simulation parameters can be configured through the web interface on the Configuration page.
+                        These settings control all aspects of the simulation:
+                    </p>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card mb-3">
+                                <div class="card-body">
+                                    <h5>Basic Configuration</h5>
+                                    <ul>
+                                        <li><strong>Dimension:</strong> Choose between 2D and 3D simulation</li>
+                                        <li><strong>Grid Points:</strong> Number of grid points in each dimension</li>
+                                        <li><strong>Domain Size:</strong> Physical domain size (normalized units)</li>
+                                        <li><strong>Time Step:</strong> Time increment for FDTD updates</li>
+                                        <li><strong>Total Simulation Time:</strong> Duration of the simulation</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card mb-3">
+                                <div class="card-body">
+                                    <h5>Material & Boundary</h5>
+                                    <ul>
+                                        <li><strong>Permittivity (ε):</strong> Material permittivity (normalized)</li>
+                                        <li><strong>Permeability (μ):</strong> Material permeability (normalized)</li>
+                                        <li><strong>Boundary Condition Type:</strong> Type of boundary condition</li>
+                                        <li><strong>Impedance:</strong> For advanced boundary conditions</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card mb-3">
+                                <div class="card-body">
+                                    <h5>Source Configuration</h5>
+                                    <ul>
+                                        <li><strong>Source Enable:</strong> Enable/disable the source term</li>
+                                        <li><strong>Amplitude:</strong> Strength of the source</li>
+                                        <li><strong>Frequency:</strong> Oscillation frequency</li>
+                                        <li><strong>Modulation:</strong> Amplitude, frequency, or none</li>
+                                        <li><strong>Center Position:</strong> Location of the source</li>
+                                        <li><strong>Spatial Spread:</strong> Width of Gaussian source</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card mb-3">
+                                <div class="card-body">
+                                    <h5>Nonlinearity & Visualization</h5>
+                                    <ul>
+                                        <li><strong>Enable Nonlinear Effects:</strong> Toggle nonlinear terms</li>
+                                        <li><strong>Nonlinearity Strength:</strong> Magnitude of nonlinearity</li>
+                                        <li><strong>Slice Axis:</strong> Axis for 2D slicing in 3D simulations</li>
+                                        <li><strong>Slice Position:</strong> Position along the slice axis</li>
+                                        <li><strong>3D Volume Rendering:</strong> Enable 3D visualization</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+                
+                <!-- Running Simulations -->
+                <section id="running-simulations" class="doc-section">
+                    <h2 class="mb-3">Running Simulations</h2>
+                    <p>
+                        To run a simulation:
+                    </p>
+                    <ol>
+                        <li>Configure the simulation parameters on the Configuration page</li>
+                        <li>Return to the Dashboard</li>
+                        <li>Click the "Run Simulation" button</li>
+                        <li>Monitor the progress on the dashboard</li>
+                        <li>Once complete, view the results on the Results page</li>
+                    </ol>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Note:</strong> Simulations with large grid sizes or long durations may take significant time to complete.
+                    </div>
+                    <p>
+                        For testing new configurations, it's recommended to start with smaller grid sizes and shorter durations.
+                        Once you confirm that the configuration produces the expected behavior, you can increase these parameters
+                        for higher-resolution results.
+                    </p>
+                </section>
+                
+                <!-- Output & Visualization -->
+                <section id="output-visualization" class="doc-section">
+                    <h2 class="mb-3">Output & Visualization</h2>
+                    <p>
+                        The simulation produces several types of outputs:
+                    </p>
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <h5>Snapshots</h5>
+                            <p>
+                                Static images showing the state of the scalar and vector fields at specific time steps.
+                                For 2D simulations, these show the entire domain. For 3D simulations, these show slices along
+                                the configured slice axis.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <h5>Animations</h5>
+                            <p>
+                                MP4 animations showing the time evolution of the fields. Both standard 2D animations
+                                and (optionally) 3D volume animations are available for 3D simulations.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <h5>Energy Time Series</h5>
+                            <p>
+                                Plot showing the total scalar and vector energy in the system over time. This is 
+                                particularly useful for analyzing the balance between scalar and vector modes.
+                            </p>
+                        </div>
+                    </div>
+                    <p>
+                        All of these outputs can be viewed on the Results page after a simulation completes.
+                    </p>
+                </section>
+                
+                <!-- Troubleshooting -->
+                <section id="troubleshooting" class="doc-section">
+                    <h2 class="mb-3">Troubleshooting</h2>
+                    <div class="accordion" id="troubleshootingAccordion">
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingOne">
+                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+                                    Simulation Crashes or Shows Errors
+                                </button>
+                            </h2>
+                            <div id="collapseOne" class="accordion-collapse collapse show" aria-labelledby="headingOne" data-bs-parent="#troubleshootingAccordion">
+                                <div class="accordion-body">
+                                    <p>Common causes of simulation errors:</p>
+                                    <ul>
+                                        <li>
+                                            <strong>CFL Condition Violation:</strong> If the time step is too large relative to the grid spacing,
+                                            the simulation can become unstable. Try reducing the time step (dt).
+                                        </li>
+                                        <li>
+                                            <strong>Memory Issues:</strong> Very large grid sizes (especially in 3D) can cause memory problems.
+                                            Try reducing the number of grid points.
+                                        </li>
+                                        <li>
+                                            <strong>Nonlinearity Issues:</strong> Strong nonlinearities can sometimes lead to instabilities.
+                                            Try reducing the nonlinearity strength or disabling it entirely.
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingTwo">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
+                                    Visualization Problems
+                                </button>
+                            </h2>
+                            <div id="collapseTwo" class="accordion-collapse collapse" aria-labelledby="headingTwo" data-bs-parent="#troubleshootingAccordion">
+                                <div class="accordion-body">
+                                    <p>Troubleshooting visualization issues:</p>
+                                    <ul>
+                                        <li>
+                                            <strong>Missing 3D Visualizations:</strong> 3D volume rendering requires the scikit-image library.
+                                            Ensure it's properly installed.
+                                        </li>
+                                        <li>
+                                            <strong>No Animation File:</strong> Creating animations requires FFmpeg. Check that it's installed on your system.
+                                        </li>
+                                        <li>
+                                            <strong>Empty or Blank Plots:</strong> This can occur if field values are all zero or extremely small.
+                                            Check that your source is enabled and has sufficient amplitude.
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingThree">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
+                                    Performance Issues
+                                </button>
+                            </h2>
+                            <div id="collapseThree" class="accordion-collapse collapse" aria-labelledby="headingThree" data-bs-parent="#troubleshootingAccordion">
+                                <div class="accordion-body">
+                                    <p>Tips for improving simulation performance:</p>
+                                    <ul>
+                                        <li>
+                                            <strong>Reduce Grid Resolution:</strong> Fewer grid points means faster simulation times.
+                                        </li>
+                                        <li>
+                                            <strong>Shorter Simulation Duration:</strong> Reduce the total simulation time.
+                                        </li>
+                                        <li>
+                                            <strong>Increase Snapshot Interval:</strong> Increasing the snapshot interval reduces the number of outputs
+                                            and improves performance.
+                                        </li>
+                                        <li>
+                                            <strong>Disable Volume Rendering:</strong> 3D volume visualization can be computationally expensive.
+                                            Disable it if not needed.
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Highlight active section in TOC based on scroll position
+        const sections = document.querySelectorAll('.doc-section');
+        const tocLinks = document.querySelectorAll('.toc-link');
+        
+        function setActiveSection() {
+            let current = '';
+            
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                const sectionHeight = section.clientHeight;
+                if (window.scrollY >= (sectionTop - 300)) {
+                    current = section.getAttribute('id');
+                }
+            });
+            
+            tocLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('data-section') === current) {
+                    link.classList.add('active');
+                }
+            });
+        }
+        
+        window.addEventListener('scroll', setActiveSection);
+        setActiveSection();  // Set initial active section
+    });
+</script>
+{% endblock %}

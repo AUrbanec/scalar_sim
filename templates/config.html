@@ -1,0 +1,367 @@
+{% extends 'base.html' %}
+
+{% block title %}Configuration - Scalar Wave Simulation Framework{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <h1 class="display-5 mb-0">
+                <i class="fas fa-cogs me-2"></i> Simulation Configuration
+            </h1>
+            <a href="{{ url_for('index') }}" class="btn btn-outline-primary">
+                <i class="fas fa-arrow-left me-2"></i> Back to Dashboard
+            </a>
+        </div>
+        <p class="text-muted mt-2">Configure all simulation parameters</p>
+    </div>
+</div>
+
+<form action="{{ url_for('config_page') }}" method="POST">
+    <div class="row">
+        <!-- Basic Configuration -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-cube me-2"></i> Basic Configuration
+                </div>
+                <div class="card-body">
+                    <!-- Dimension Selection -->
+                    <div class="mb-3">
+                        <label for="dimension" class="form-label">Dimension</label>
+                        <select class="form-select" id="dimension" name="dimension">
+                            <option value="2" {% if config.simulation.dimension == 2 %}selected{% endif %}>2D</option>
+                            <option value="3" {% if config.simulation.dimension == 3 %}selected{% endif %}>3D</option>
+                        </select>
+                        <div class="form-text">Select simulation dimension (2D or 3D)</div>
+                    </div>
+                    
+                    <!-- Grid Configuration -->
+                    <div class="mb-3">
+                        <label class="form-label">Grid Points</label>
+                        <div class="row g-2">
+                            <div class="col-4">
+                                <div class="input-group">
+                                    <span class="input-group-text">X</span>
+                                    <input type="number" class="form-control" name="x_points" value="{{ config.simulation.grid.x_points }}" min="3" required>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="input-group">
+                                    <span class="input-group-text">Y</span>
+                                    <input type="number" class="form-control" name="y_points" value="{{ config.simulation.grid.y_points }}" min="3" required>
+                                </div>
+                            </div>
+                            <div class="col-4" id="z-points-container">
+                                <div class="input-group">
+                                    <span class="input-group-text">Z</span>
+                                    <input type="number" class="form-control" name="z_points" value="{{ config.simulation.grid.z_points }}" min="3">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-text">Number of grid points in each dimension</div>
+                    </div>
+                    
+                    <!-- Domain Size -->
+                    <div class="mb-3">
+                        <label class="form-label">Domain Size</label>
+                        <div class="row g-2">
+                            <div class="col-4">
+                                <div class="input-group">
+                                    <span class="input-group-text">X</span>
+                                    <input type="number" class="form-control" name="x_length" value="{{ config.simulation.grid.x_length }}" min="0.1" step="0.1" required>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="input-group">
+                                    <span class="input-group-text">Y</span>
+                                    <input type="number" class="form-control" name="y_length" value="{{ config.simulation.grid.y_length }}" min="0.1" step="0.1" required>
+                                </div>
+                            </div>
+                            <div class="col-4" id="z-length-container">
+                                <div class="input-group">
+                                    <span class="input-group-text">Z</span>
+                                    <input type="number" class="form-control" name="z_length" value="{{ config.simulation.grid.z_length }}" min="0.1" step="0.1">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-text">Physical domain size (normalized units)</div>
+                    </div>
+                    
+                    <!-- Time Configuration -->
+                    <div class="mb-3">
+                        <label for="dt" class="form-label">Time Step (dt)</label>
+                        <input type="number" class="form-control" id="dt" name="dt" value="{{ config.simulation.time.dt }}" min="0.0001" step="0.0001" required>
+                        <div class="form-text">Time step size (normalized time)</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="total_time" class="form-label">Total Simulation Time</label>
+                        <input type="number" class="form-control" id="total_time" name="total_time" value="{{ config.simulation.time.total_time }}" min="0.1" step="0.1" required>
+                        <div class="form-text">Total duration to simulate (normalized time)</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Material and Boundary -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-atom me-2"></i> Material & Boundary Conditions
+                </div>
+                <div class="card-body">
+                    <!-- Material Parameters -->
+                    <div class="mb-3">
+                        <label for="epsilon" class="form-label">Permittivity (ε)</label>
+                        <input type="number" class="form-control" id="epsilon" name="epsilon" value="{{ config.simulation.material.epsilon }}" min="0.1" step="0.1" required>
+                        <div class="form-text">Normalized permittivity (default: 1.0)</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="mu" class="form-label">Permeability (μ)</label>
+                        <input type="number" class="form-control" id="mu" name="mu" value="{{ config.simulation.material.mu }}" min="0.1" step="0.1" required>
+                        <div class="form-text">Normalized permeability (default: 1.0)</div>
+                    </div>
+                    
+                    <!-- Boundary Conditions -->
+                    <div class="mb-3">
+                        <label for="bc_type" class="form-label">Boundary Condition Type</label>
+                        <select class="form-select" id="bc_type" name="bc_type">
+                            <option value="dirichlet" {% if config.simulation.boundary_conditions.type == "dirichlet" %}selected{% endif %}>Dirichlet</option>
+                            <option value="neumann" {% if config.simulation.boundary_conditions.type == "neumann" %}selected{% endif %}>Neumann</option>
+                            <option value="advanced" {% if config.simulation.boundary_conditions.type == "advanced" %}selected{% endif %}>Advanced</option>
+                        </select>
+                        <div class="form-text">Type of boundary condition to apply</div>
+                    </div>
+                    
+                    <div class="mb-3" id="impedance-container">
+                        <label for="impedance" class="form-label">Impedance</label>
+                        <input type="number" class="form-control" id="impedance" name="impedance" value="{{ config.simulation.boundary_conditions.impedance }}" min="0" step="0.01">
+                        <div class="form-text">Impedance value for advanced boundary conditions</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Source Configuration -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-bolt me-2"></i> Source Configuration
+                </div>
+                <div class="card-body">
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" role="switch" id="source_enabled" name="source_enabled" {% if config.simulation.source.enabled %}checked{% endif %}>
+                        <label class="form-check-label" for="source_enabled">Enable Source</label>
+                    </div>
+                    
+                    <div id="source-parameters">
+                        <div class="mb-3">
+                            <label for="source_amplitude" class="form-label">Source Amplitude</label>
+                            <input type="number" class="form-control" id="source_amplitude" name="source_amplitude" value="{{ config.simulation.source.amplitude }}" min="0" step="0.1">
+                            <div class="form-text">Amplitude of the source term</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="source_frequency" class="form-label">Source Frequency</label>
+                            <input type="number" class="form-control" id="source_frequency" name="source_frequency" value="{{ config.simulation.source.frequency }}" min="0" step="0.1">
+                            <div class="form-text">Frequency of the source (normalized units)</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="source_modulation" class="form-label">Modulation Type</label>
+                            <select class="form-select" id="source_modulation" name="source_modulation">
+                                <option value="amplitude" {% if config.simulation.source.modulation == "amplitude" %}selected{% endif %}>Amplitude</option>
+                                <option value="frequency" {% if config.simulation.source.modulation == "frequency" %}selected{% endif %}>Frequency</option>
+                                <option value="none" {% if config.simulation.source.modulation == "none" %}selected{% endif %}>None</option>
+                            </select>
+                            <div class="form-text">Type of modulation to apply to the source</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="source_center" class="form-label">Source Center Position</label>
+                            <input type="text" class="form-control" id="source_center" name="source_center" value="{{ config.simulation.source.center|join(', ') }}">
+                            <div class="form-text">Center position of the source (comma-separated values)</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="source_sigma" class="form-label">Source Spatial Spread (σ)</label>
+                            <input type="number" class="form-control" id="source_sigma" name="source_sigma" value="{{ config.simulation.source.sigma }}" min="0.001" step="0.001">
+                            <div class="form-text">Spatial spread for a Gaussian source</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Nonlinearity & Visualization -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-chart-line me-2"></i> Nonlinearity & Visualization
+                </div>
+                <div class="card-body">
+                    <h6 class="card-subtitle mb-3 text-muted">Nonlinearity</h6>
+                    
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" role="switch" id="nonlinearity_enabled" name="nonlinearity_enabled" {% if config.simulation.nonlinearity.enabled %}checked{% endif %}>
+                        <label class="form-check-label" for="nonlinearity_enabled">Enable Nonlinear Effects</label>
+                    </div>
+                    
+                    <div class="mb-3" id="nonlinearity-parameters">
+                        <label for="nonlinearity_strength" class="form-label">Nonlinearity Strength</label>
+                        <input type="number" class="form-control" id="nonlinearity_strength" name="nonlinearity_strength" value="{{ config.simulation.nonlinearity.strength }}" min="0" step="0.001">
+                        <div class="form-text">Strength of nonlinear effects (0 = linear)</div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <h6 class="card-subtitle mb-3 text-muted">Visualization</h6>
+                    
+                    <div class="mb-3">
+                        <label for="slice_axis" class="form-label">Slice Axis (3D only)</label>
+                        <select class="form-select" id="slice_axis" name="slice_axis">
+                            <option value="x" {% if config.simulation.visualization.slice_axis == "x" %}selected{% endif %}>X</option>
+                            <option value="y" {% if config.simulation.visualization.slice_axis == "y" %}selected{% endif %}>Y</option>
+                            <option value="z" {% if config.simulation.visualization.slice_axis == "z" %}selected{% endif %}>Z</option>
+                        </select>
+                        <div class="form-text">Axis for 2D slicing in 3D simulations</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="slice_position" class="form-label">Slice Position</label>
+                        <div class="d-flex align-items-center">
+                            <input type="range" class="form-range flex-grow-1 me-2" id="slice_position_range" min="0" max="1" step="0.01" value="{{ config.simulation.visualization.slice_position }}">
+                            <input type="number" class="form-control" style="width: 100px;" id="slice_position" name="slice_position" value="{{ config.simulation.visualization.slice_position }}" min="0" max="1" step="0.01">
+                        </div>
+                        <div class="form-text">Position along the slice axis (0.0 to 1.0)</div>
+                    </div>
+                    
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" role="switch" id="volume_rendering" name="volume_rendering" {% if config.simulation.visualization.volume_rendering %}checked{% endif %}>
+                        <label class="form-check-label" for="volume_rendering">Enable 3D Volume Rendering</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Output Configuration -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-save me-2"></i> Output Configuration
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="snapshot_interval" class="form-label">Snapshot Interval</label>
+                        <input type="number" class="form-control" id="snapshot_interval" name="snapshot_interval" value="{{ config.simulation.output.snapshot_interval }}" min="1" step="1">
+                        <div class="form-text">Time step interval between output snapshots</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="output_dir" class="form-label">Output Directory</label>
+                        <input type="text" class="form-control" id="output_dir" name="output_dir" value="{{ config.simulation.output.output_dir }}">
+                        <div class="form-text">Directory for simulation outputs</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-12 text-center mb-4">
+            <button type="submit" class="btn btn-primary me-2">
+                <i class="fas fa-save me-2"></i> Save Configuration
+            </button>
+            <a href="{{ url_for('index') }}" class="btn btn-secondary">
+                <i class="fas fa-times me-2"></i> Cancel
+            </a>
+        </div>
+    </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Show/hide Z dimension inputs based on dimension selection
+        const dimensionSelect = document.getElementById('dimension');
+        const zPointsContainer = document.getElementById('z-points-container');
+        const zLengthContainer = document.getElementById('z-length-container');
+        const sliceAxisSelect = document.getElementById('slice_axis');
+        
+        function updateDimensionInputs() {
+            if (dimensionSelect.value === '2') {
+                zPointsContainer.style.display = 'none';
+                zLengthContainer.style.display = 'none';
+                sliceAxisSelect.disabled = true;
+            } else {
+                zPointsContainer.style.display = 'block';
+                zLengthContainer.style.display = 'block';
+                sliceAxisSelect.disabled = false;
+            }
+        }
+        
+        dimensionSelect.addEventListener('change', updateDimensionInputs);
+        updateDimensionInputs();
+        
+        // Show/hide impedance input based on boundary condition type
+        const bcTypeSelect = document.getElementById('bc_type');
+        const impedanceContainer = document.getElementById('impedance-container');
+        
+        function updateBoundaryInputs() {
+            if (bcTypeSelect.value === 'advanced') {
+                impedanceContainer.style.display = 'block';
+            } else {
+                impedanceContainer.style.display = 'none';
+            }
+        }
+        
+        bcTypeSelect.addEventListener('change', updateBoundaryInputs);
+        updateBoundaryInputs();
+        
+        // Show/hide source parameters based on enabled state
+        const sourceEnabledCheckbox = document.getElementById('source_enabled');
+        const sourceParameters = document.getElementById('source-parameters');
+        
+        function updateSourceInputs() {
+            if (sourceEnabledCheckbox.checked) {
+                sourceParameters.style.display = 'block';
+            } else {
+                sourceParameters.style.display = 'none';
+            }
+        }
+        
+        sourceEnabledCheckbox.addEventListener('change', updateSourceInputs);
+        updateSourceInputs();
+        
+        // Show/hide nonlinearity parameters based on enabled state
+        const nonlinearityEnabledCheckbox = document.getElementById('nonlinearity_enabled');
+        const nonlinearityParameters = document.getElementById('nonlinearity-parameters');
+        
+        function updateNonlinearityInputs() {
+            if (nonlinearityEnabledCheckbox.checked) {
+                nonlinearityParameters.style.display = 'block';
+            } else {
+                nonlinearityParameters.style.display = 'none';
+            }
+        }
+        
+        nonlinearityEnabledCheckbox.addEventListener('change', updateNonlinearityInputs);
+        updateNonlinearityInputs();
+        
+        // Sync slice position range and number input
+        const slicePositionRange = document.getElementById('slice_position_range');
+        const slicePositionInput = document.getElementById('slice_position');
+        
+        slicePositionRange.addEventListener('input', function() {
+            slicePositionInput.value = this.value;
+        });
+        
+        slicePositionInput.addEventListener('input', function() {
+            slicePositionRange.value = this.value;
+        });
+    });
+</script>
+{% endblock %}
